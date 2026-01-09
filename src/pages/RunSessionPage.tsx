@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, X, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -115,6 +115,14 @@ const RunSessionPage: React.FC = () => {
         const paragraphs = chapter.content;
         const totalPages = paragraphs.length;
         const currentText = paragraphs[readPage] || "";
+        const scrollRef = useRef<HTMLDivElement>(null);
+
+        // Reset scroll on page change
+        useEffect(() => {
+            if (scrollRef.current) {
+                scrollRef.current.scrollTop = 0;
+            }
+        }, [readPage]);
 
         const handlePrev = () => {
             if (readPage > 0) setReadPage(p => p - 1);
@@ -153,7 +161,7 @@ const RunSessionPage: React.FC = () => {
                     </h2>
 
                     {/* Book Page Container */}
-                    <div className="card" style={{
+                    <div ref={scrollRef} className="card" style={{
                         flex: 1,
                         width: '100%',
                         maxWidth: '700px', // Prevent too wide text on PC
@@ -170,15 +178,10 @@ const RunSessionPage: React.FC = () => {
                         display: 'flex',
                         flexDirection: 'column'
                     }}>
-                        <motion.div
-                            key={readPage}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.2 }}
-                            style={{ width: '100%' }}
-                        >
+                        {/* Direct re-render without animation for zero flickering */}
+                        <div key={readPage} className="reading-content">
                             <p dangerouslySetInnerHTML={{ __html: currentText }} />
-                        </motion.div>
+                        </div>
                     </div>
                 </div>
 
