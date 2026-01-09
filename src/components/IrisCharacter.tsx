@@ -14,6 +14,8 @@ const IrisCharacter: React.FC<IrisCharacterProps> = ({ width = 150, height = 150
     const [useFallback, setUseFallback] = useState(false);
 
     // Rive Init
+    // Rive Init (Disabled temporarily as file is missing)
+    /*
     const { rive, RiveComponent } = useRive({
         src: 'iris.riv', // Expects file in public/iris.riv
         stateMachines: 'State Machine 1',
@@ -26,6 +28,13 @@ const IrisCharacter: React.FC<IrisCharacterProps> = ({ width = 150, height = 150
             setRiveLoaded(true);
         }
     });
+    */
+    const rive = null;
+    const RiveComponent = () => null;
+
+    useEffect(() => {
+        setUseFallback(true); // Force fallback immediately
+    }, []);
 
     // Inputs
     const stateInput = useStateMachineInput(rive, 'State Machine 1', 'StateNum');
