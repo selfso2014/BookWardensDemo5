@@ -161,7 +161,7 @@ const RunSessionPage: React.FC = () => {
                     </h2>
 
                     {/* Book Page Container */}
-                    <div ref={scrollRef} className="card" style={{
+                    <div ref={scrollRef} className="card reading-card" style={{
                         flex: 1,
                         width: '100%',
                         maxWidth: '700px', // Prevent too wide text on PC
@@ -174,10 +174,19 @@ const RunSessionPage: React.FC = () => {
                         fontFamily: 'serif',
                         fontSize: '1.15rem', // Smaller Text (was 1.25rem)
                         color: '#374151',
-                        overflowY: 'hidden', // Disable Scroll
+                        overflowY: 'auto', // Enable Scroll again
                         display: 'flex',
-                        flexDirection: 'column'
+                        flexDirection: 'column',
+                        scrollbarWidth: 'none', // Firefox hide scrollbar
+                        msOverflowStyle: 'none'  // IE/Edge hide scrollbar
                     }}>
+                        <style>
+                            {`
+                                .reading-card::-webkit-scrollbar {
+                                    display: none;
+                                }
+                            `}
+                        </style>
                         {/* Direct re-render without animation for zero flickering */}
                         <div key={readPage} className="reading-content">
                             <p dangerouslySetInnerHTML={{ __html: currentText }} />
