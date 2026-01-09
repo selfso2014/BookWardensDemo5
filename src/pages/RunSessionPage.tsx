@@ -4,16 +4,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Eye, X } from 'lucide-react';
 import { useGameStore } from '../lib/store';
 import { setGazeCallback } from '../lib/seesoHandler';
+import { MOCK_BOOKS } from '../data/mockBooks';
 import '../styles/Layout.css';
 
 type RunPhase = 'WORD' | 'READ' | 'RIFT' | 'BOSS' | 'REWARD';
 
 const RunSessionPage: React.FC = () => {
     const navigate = useNavigate();
-    const { addInk, addRunes, addGems } = useGameStore();
+    const { addInk, addRunes, addGems, selectedBookId, selectedChapterId } = useGameStore();
+
+    // Find content
+    const book = MOCK_BOOKS.find(b => b.id === (selectedBookId || 'book_01'));
+    const chapter = book?.chapters.find(c => c.id === (selectedChapterId || 'ch_01'));
+
     const [phase, setPhase] = useState<RunPhase>('WORD');
     const [timer, setTimer] = useState(600); // 10 mins in seconds
     const [gazePos, setGazePos] = useState<{ x: number, y: number } | null>(null);
+
+    // Initial check
+    if (!book || !chapter) {
+        return <div className="p-4">Error loading content. <button onClick={() => navigate('/home')}>Back</button></div>;
+    }
 
     // Timer
     useEffect(() => {
@@ -45,10 +56,10 @@ const RunSessionPage: React.FC = () => {
         else if (phase === 'READ') setPhase('RIFT');
         else if (phase === 'RIFT') setPhase('BOSS');
         else if (phase === 'BOSS') {
-            // Give Rewards
-            addInk(100);
-            addRunes(5);
-            addGems(1);
+            // Give Rewards based on chapter data
+            addInk(chapter.rewards.ink);
+            addRunes(chapter.rewards.runes);
+            addGems(chapter.rewards.gems);
             setPhase('REWARD');
         }
         else if (phase === 'REWARD') navigate('/home');
@@ -62,13 +73,12 @@ const RunSessionPage: React.FC = () => {
 
     const WordPhase = () => {
         const [shake, setShake] = useState<string | null>(null);
+        const q = chapter.wordSprint;
 
         const handleWordChoice = (choice: string) => {
-            if (choice === 'Short-lived') {
-                // Correct
+            if (choice === q.correctChoice) {
                 nextPhase();
             } else {
-                // Incorrect
                 setShake(choice);
                 setTimeout(() => setShake(null), 500);
             }
@@ -79,41 +89,35 @@ const RunSessionPage: React.FC = () => {
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--c-primary)' }}>Word Sprint!</h2>
                 <div className="card" style={{ maxWidth: '400px', width: '100%', padding: '2rem', marginBottom: '2rem' }}>
                     <p style={{ color: 'var(--c-text-sub)', marginBottom: '0.5rem' }}>Identify this word:</p>
-                    <h3 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1.5rem' }}>Ephemeral</h3>
+                    <h3 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1.5rem' }}>{q.word}</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        {['Short-lived', 'Eternal', 'Heavy', 'Bright'].map((word) => (
+                        {q.choices.map((choice) => (
                             <motion.button
-                                key={word}
+                                key={choice}
                                 className="btn-secondary"
-                                onClick={() => handleWordChoice(word)}
-                                animate={shake === word ? { x: [-10, 10, -10, 10, 0], backgroundColor: '#FEE2E2', borderColor: '#F87171' } : {}}
+                                onClick={() => handleWordChoice(choice)}
+                                animate={shake === choice ? { x: [-10, 10, -10, 10, 0], backgroundColor: '#FEE2E2', borderColor: '#F87171' } : {}}
                                 transition={{ duration: 0.4 }}
                             >
-                                {word}
+                                {choice}
                             </motion.button>
                         ))}
                     </div>
                 </div>
-                <p style={{ color: 'var(--c-text-sub)', fontSize: '0.85rem' }}>Step 1/5</p>
+                <p style={{ color: 'var(--c-text-sub)', fontSize: '0.85rem' }}>Phase 1/5</p>
             </div>
         );
     };
 
     const ReadPhase = () => (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
-            {/* Gaze Dot Feedback (Only visible in Read Phase) */}
             {gazePos && (
                 <div
                     style={{
-                        position: 'fixed',
-                        left: gazePos.x,
-                        top: gazePos.y,
-                        width: 20,
-                        height: 20,
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(139, 92, 246, 0.5)', // Transparent Purple
-                        pointerEvents: 'none',
-                        zIndex: 9999,
+                        position: 'fixed', left: gazePos.x, top: gazePos.y,
+                        width: 20, height: 20, borderRadius: '50%',
+                        backgroundColor: 'rgba(139, 92, 246, 0.5)',
+                        pointerEvents: 'none', zIndex: 9999,
                         transform: 'translate(-50%, -50%)',
                         boxShadow: '0 0 10px rgba(139, 92, 246, 0.8)'
                     }}
@@ -123,19 +127,16 @@ const RunSessionPage: React.FC = () => {
             <div style={{ position: 'absolute', top: 0, right: 0, padding: '0.5rem', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '50%' }}>
                 <Eye size={20} color="var(--c-primary)" />
             </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>Chapter 1: The Beginning</h2>
+
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>
+                {book.title} - {chapter.title}
+            </h2>
+
             <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', background: 'white', borderRadius: 'var(--radius-md)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', lineHeight: 2, fontFamily: 'serif', fontSize: '1.1rem' }}>
-                <p>
-                    The library was quiet, save for the gentle rustling of pages.
-                    <span style={{ backgroundColor: '#E9D5FF', padding: '0 4px', borderRadius: '4px' }}>Iris floated silently</span> near the ceiling,
-                    her wings shimmering with a soft, iridescent light. It was a day unlike any other in Libraria...
-                </p>
-                <p>
-                    As the clock struck noon, a strange ripple distorted the air. Books began to tremble on their shelves.
-                    One by one, letters peeled off the pages, swirling into a chaotic vortex.
-                    "The Rift!" Iris cried out, her small voice trembling with urgency.
-                </p>
-                <div style={{ height: '150px' }} /> {/* Spacer */}
+                {chapter.content.map((paragraph, idx) => (
+                    <p key={idx} dangerouslySetInnerHTML={{ __html: paragraph }} style={{ marginBottom: '1rem' }} />
+                ))}
+                <div style={{ height: '150px' }} />
             </div>
             <div className="flex-center" style={{ marginTop: '1rem' }}>
                 <button className="btn-primary" onClick={nextPhase}>Finish Reading</button>
@@ -150,7 +151,9 @@ const RunSessionPage: React.FC = () => {
             <div className="card" onClick={nextPhase}
                 style={{ padding: '2rem', backgroundColor: '#1F2937', color: 'white', cursor: 'pointer', position: 'relative', overflow: 'hidden', width: '200px', height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-                <p style={{ filter: 'blur(4px)', userSelect: 'none' }}>Corruption...</p>
+                <p style={{ filter: 'blur(4px)', userSelect: 'none' }}>
+                    {chapter.riftPoints[0].text}
+                </p>
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <span style={{ fontSize: '3rem' }}>👻</span>
                 </div>
@@ -159,21 +162,38 @@ const RunSessionPage: React.FC = () => {
         </div>
     );
 
-    const BossPhase = () => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
-            <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--c-error)' }}>Boss Battle!</h2>
-            <p style={{ marginBottom: '2rem' }}>The Trickster of Typos</p>
+    const BossPhase = () => {
+        const boss = chapter.boss;
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
+                <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--c-error)' }}>Boss Battle!</h2>
+                <p style={{ marginBottom: '2rem' }}>{boss.name}</p>
 
-            <div style={{ width: '120px', height: '120px', borderRadius: '50%', backgroundColor: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '4rem', marginBottom: '2rem', border: '4px solid #FCA5A5' }}>
-                😈
-            </div>
+                <div style={{ width: '120px', height: '120px', borderRadius: '50%', backgroundColor: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '4rem', marginBottom: '2rem', border: '4px solid #FCA5A5' }}>
+                    {boss.avatarEmoji}
+                </div>
 
-            <div className="card" style={{ width: '100%', padding: '1.5rem', marginBottom: '1rem', maxWidth: '400px' }}>
-                <p style={{ fontWeight: 700, marginBottom: '1rem' }}>Quiz: "What was Iris doing?"</p>
-                <button className="btn-primary" style={{ width: '100%' }} onClick={nextPhase}>Floating silently</button>
+                <div className="card" style={{ width: '100%', padding: '1.5rem', marginBottom: '1rem', maxWidth: '400px' }}>
+                    <p style={{ fontWeight: 700, marginBottom: '1rem' }}>Quiz: "{boss.quizQuestion}"</p>
+                    <div style={{ display: 'grid', gap: '0.5rem' }}>
+                        {boss.quizChoices.map(c => (
+                            <button
+                                key={c}
+                                className="btn-secondary"
+                                style={{ width: '100%' }}
+                                onClick={() => {
+                                    if (c === boss.correctAnswer) nextPhase();
+                                    else alert("Wrong! " + boss.avatarEmoji + " attacks!");
+                                }}
+                            >
+                                {c}
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     const RewardPhase = () => (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
@@ -187,11 +207,11 @@ const RunSessionPage: React.FC = () => {
             <div style={{ display: 'flex', gap: '2rem', marginBottom: '2rem' }}>
                 <div className="flex-center" style={{ flexDirection: 'column' }}>
                     <span style={{ fontSize: '1.5rem' }}>💧</span>
-                    <span>+100 Ink</span>
+                    <span>+{chapter.rewards.ink} Ink</span>
                 </div>
                 <div className="flex-center" style={{ flexDirection: 'column' }}>
                     <span style={{ fontSize: '1.5rem' }}>✨</span>
-                    <span>+5 Rune</span>
+                    <span>+{chapter.rewards.runes} Rune</span>
                 </div>
             </div>
             <button className="btn-primary" style={{ width: '100%', maxWidth: '200px' }} onClick={nextPhase}>Back to Libraria</button>
@@ -223,7 +243,7 @@ const RunSessionPage: React.FC = () => {
             <main style={{ flex: 1, padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
                 <AnimatePresence mode="wait">
                     <motion.div
-                        key={phase}
+                        key={phase + selectedChapterId} // Force re-render on chapter change
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }}

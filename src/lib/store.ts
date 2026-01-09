@@ -27,8 +27,11 @@ interface GameState {
     incrementStreak: () => void;
     updateEyeTier: (tier: EyeTier) => void;
 
-    // Session State (Transient)
-    // Not persisted usually, but kept here for global access if needed
+    // Content Session
+    selectedBookId: string | null;
+    selectedChapterId: string | null;
+    setSelectedContent: (bookId: string, chapterId: string) => void;
+
     lastRunDate: string | null;
 }
 
@@ -59,6 +62,10 @@ export const useGameStore = create<GameState>()(
             eyeTier: 'Bronze',
             incrementStreak: () => set((state) => ({ streak: state.streak + 1 })),
             updateEyeTier: (tier) => set({ eyeTier: tier }),
+
+            selectedBookId: 'book_01', // Default
+            selectedChapterId: 'ch_01', // Default
+            setSelectedContent: (bookId, chapterId) => set({ selectedBookId: bookId, selectedChapterId: chapterId }),
 
             lastRunDate: null,
         }),

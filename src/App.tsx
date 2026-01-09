@@ -9,6 +9,7 @@ import HomePage from './pages/HomePage';
 import DungeonPage from './pages/DungeonPage';
 import RunSessionPage from './pages/RunSessionPage';
 import IrisPage from './pages/IrisPage';
+import ReportPage from './pages/ReportPage';
 
 function App() {
   const { isOnboarded } = useGameStore();
@@ -26,6 +27,7 @@ function App() {
           <Route path="/dungeon" element={<DungeonPage />} />
           <Route path="/run" element={<RunSessionPage />} />
           <Route path="/iris" element={<IrisPage />} />
+          <Route path="/report" element={<ReportPage />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" />} />
