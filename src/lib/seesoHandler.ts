@@ -63,20 +63,33 @@ export const startCalibration = (
     onProgress: (progress: number) => void,
     onFinish: () => void
 ) => {
-    if (!seesoInstance || !SEESO_LICENSE_KEY || SEESO_LICENSE_KEY.length < 10) {
-        // Mock Fallback
+    // Safety check
+    if (!seesoInstance) {
+        alert("SeeSo Instance not initialized! Falling back to Mock.");
+        mockCalibration(onNextPoint, onProgress, onFinish);
+        return;
+    }
+
+    if (!SEESO_LICENSE_KEY || SEESO_LICENSE_KEY.length < 10) {
         mockCalibration(onNextPoint, onProgress, onFinish);
         return;
     }
 
     try {
+        // Ensure tracking is stopped before calibration
+        seesoInstance.stopTracking();
+
+        console.log("Starting SeeSo Calibration...");
         seesoInstance.startCalibration(
             onNextPoint,
             onProgress,
             onFinish
         );
-    } catch (e) {
-        console.error("Calibration error", e);
+
+    } catch (e: any) {
+        console.error("Calibration Error:", e);
+        // Alert only in dev or if critical, but for now helpful for user
+        alert("Calibration API Error: " + (e.message || e) + ". Using Mock.");
         mockCalibration(onNextPoint, onProgress, onFinish);
     }
 };
