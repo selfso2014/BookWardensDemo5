@@ -120,7 +120,8 @@ const ReadPhase = ({ chapter, readPage, setReadPage, nextPhase, gazePos }: {
         }, 5000); // 5s initial wait
 
         return () => clearTimeout(startDelay);
-    }, [readPage, sentences, totalPages, nextPhase, setReadPage]); // Fixed dependencies
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [readPage, sentences, totalPages]); // Removed strict dependencies to prevent reset on re-renders
 
     // Removed handlePrev and handleNext as manual control is disabled.
 
