@@ -172,9 +172,9 @@ const RunSessionPage: React.FC = () => {
                         boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
                         lineHeight: 1.8,
                         fontFamily: 'serif',
-                        fontSize: '1.25rem',
+                        fontSize: '1.15rem', // Smaller Text (was 1.25rem)
                         color: '#374151',
-                        overflowY: 'auto',
+                        overflowY: 'hidden', // Disable Scroll
                         display: 'flex',
                         flexDirection: 'column'
                     }}>

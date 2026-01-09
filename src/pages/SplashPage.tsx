@@ -17,7 +17,7 @@ const SplashPage: React.FC = () => {
             } else {
                 navigate('/onboarding/role'); // Start onboarding
             }
-        }, 3000);
+        }, 1000); // 3x faster (was 3000)
         return () => clearTimeout(timer);
     }, [isOnboarded, navigate]);
 
@@ -57,7 +57,7 @@ const SplashPage: React.FC = () => {
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: '100%' }}
-                            transition={{ duration: 2.5 }}
+                            transition={{ duration: 0.8 }} // 3x faster (was 2.5)
                             className="loading-fill"
                         />
                     </div>
