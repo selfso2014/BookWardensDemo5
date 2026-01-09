@@ -10,6 +10,311 @@ import '../styles/Layout.css';
 
 type RunPhase = 'WORD' | 'READ' | 'RIFT' | 'BOSS' | 'REWARD';
 
+// Helper to split text into sentences (Robust)
+const splitIntoSentences = (text: string): string[] => {
+    if (!text) return [];
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = text;
+    const plainText = tempDiv.textContent || tempDiv.innerText || "";
+    const matches = plainText.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g);
+    return matches || [plainText];
+};
+
+// --- Phase Components (Moved outside main component to prevent re-mounting) ---
+
+const WordPhase = ({ chapter, nextPhase }: { chapter: any, nextPhase: () => void }) => {
+    const [shake, setShake] = useState<string | null>(null);
+    const q = chapter.wordSprint;
+
+    const handleWordChoice = (choice: string) => {
+        if (choice === q.correctChoice) {
+            nextPhase();
+        } else {
+            setShake(choice);
+            setTimeout(() => setShake(null), 500);
+        }
+    };
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', textAlign: 'center', justifyContent: 'center' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--c-primary)' }}>Word Sprint!</h2>
+            <div className="card" style={{ maxWidth: '400px', width: '100%', padding: '2rem', marginBottom: '2rem' }}>
+                <p style={{ color: 'var(--c-text-sub)', marginBottom: '0.5rem' }}>Identify this word:</p>
+                <h3 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1.5rem' }}>{q.word}</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    {q.choices.map((choice: string) => (
+                        <motion.button
+                            key={choice}
+                            className="btn-secondary"
+                            onClick={() => handleWordChoice(choice)}
+                            animate={shake === choice ? { x: [-10, 10, -10, 10, 0], backgroundColor: '#FEE2E2', borderColor: '#F87171' } : {}}
+                            transition={{ duration: 0.4 }}
+                        >
+                            {choice}
+                        </motion.button>
+                    ))}
+                </div>
+            </div>
+            <p style={{ color: 'var(--c-text-sub)', fontSize: '0.85rem' }}>Phase 1/5</p>
+        </div>
+    );
+};
+
+const ReadPhase = ({ chapter, readPage, setReadPage, nextPhase, gazePos }: {
+    chapter: any,
+    readPage: number,
+    setReadPage: React.Dispatch<React.SetStateAction<number>>,
+    nextPhase: () => void,
+    gazePos: { x: number, y: number } | null
+}) => {
+    const paragraphs = chapter.content;
+    const totalPages = paragraphs.length;
+    const currentRawText = paragraphs[readPage] || "";
+
+    // Use useMemo and robust splitting. Cleaning is done inside splitIntoSentences.
+    const sentences = React.useMemo(() => splitIntoSentences(currentRawText), [currentRawText]);
+
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const [fadingIndex, setFadingIndex] = useState(0);
+
+    // Reset scroll on page change
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = 0;
+        }
+    }, [readPage]);
+
+    // Auto-fading logic
+    useEffect(() => {
+        setFadingIndex(0); // Reset on page change
+        console.log(`Page ${readPage} Loaded. Sentences: ${sentences.length}`);
+
+        // Initial 5s delay before starting to fade
+        const startDelay = setTimeout(() => {
+            console.log("Starting fade sequence...");
+
+            // Interval to fade sentences one by one
+            const interval = setInterval(() => {
+                setFadingIndex(prev => {
+                    const next = prev + 1;
+                    console.log("Fading index:", next);
+
+                    if (next >= sentences.length) {
+                        clearInterval(interval);
+                        // Delay before turning page (Increased)
+                        setTimeout(() => {
+                            if (readPage < totalPages - 1) {
+                                setReadPage(p => p + 1);
+                            } else {
+                                nextPhase();
+                            }
+                        }, 2500); // 2.5s
+                        return next;
+                    }
+                    return next;
+                });
+            }, 3500); // 3.5s per sentence
+
+            return () => clearInterval(interval);
+
+        }, 5000); // 5s initial wait
+
+        return () => clearTimeout(startDelay);
+    }, [readPage, sentences, totalPages, nextPhase, setReadPage]); // Fixed dependencies
+
+    const handlePrev = () => {
+        if (readPage > 0) setReadPage(p => p - 1);
+    };
+
+    const handleNext = () => {
+        if (readPage < totalPages - 1) {
+            setReadPage(p => p + 1);
+        } else {
+            nextPhase(); // Finish Reading
+        }
+    };
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+            {gazePos && (
+                <div
+                    style={{
+                        position: 'fixed', left: gazePos.x, top: gazePos.y,
+                        width: 20, height: 20, borderRadius: '50%',
+                        backgroundColor: 'rgba(139, 92, 246, 0.4)',
+                        pointerEvents: 'none', zIndex: 9999,
+                        transform: 'translate(-50%, -50%)',
+                        boxShadow: '0 0 15px rgba(139, 92, 246, 0.6)'
+                    }}
+                />
+            )}
+
+            <div style={{ position: 'absolute', top: 0, right: 0, padding: '0.5rem', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '50%' }}>
+                <Eye size={20} color="var(--c-primary)" />
+            </div>
+
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '0.5rem', overflow: 'hidden' }}>
+                <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--c-text-sub)', textAlign: 'center', flexShrink: 0 }}>
+                    {chapter.title} <span style={{ fontWeight: 400 }}>- {readPage + 1}/{totalPages}</span>
+                </h2>
+
+                {/* Book Page Container */}
+                <div ref={scrollRef} className="card reading-card" style={{
+                    flex: 1,
+                    width: '100%',
+                    maxWidth: '800px', // Wider on PC
+                    margin: '0 auto',
+                    padding: '1rem', // Less padding
+                    backgroundColor: '#fffdf5',
+                    borderRadius: 'var(--radius-md)',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+                    lineHeight: 1.7,
+                    fontFamily: 'serif',
+                    fontSize: '1.0rem', // Smaller Text
+                    color: '#374151',
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none'
+                }}>
+                    <style>
+                        {`
+                            .reading-card::-webkit-scrollbar { display: none; } 
+                            .fading-sentence { transition: opacity 0.5s ease; }
+                        `}
+                    </style>
+
+                    <div key={readPage} className="reading-content">
+                        {sentences.map((sentence, index) => (
+                            <span
+                                key={index}
+                                className="fading-sentence"
+                                style={{
+                                    opacity: index < fadingIndex ? 0 : 1,
+                                    display: 'inline',
+                                    marginRight: '0.3em'
+                                }}
+                            >
+                                {sentence}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Pagination Controls - Fixed Bottom */}
+            <div style={{
+                padding: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1rem',
+                backgroundColor: 'var(--c-bg)',
+                borderTop: '1px solid rgba(0,0,0,0.05)',
+                flexShrink: 0
+            }}>
+                <button
+                    className="btn-secondary"
+                    onClick={handlePrev}
+                    disabled={readPage === 0}
+                    style={{ opacity: readPage === 0 ? 0.5 : 1, minWidth: '100px' }}
+                >
+                    <ChevronLeft size={20} style={{ marginRight: '0.25rem' }} /> Prev
+                </button>
+
+                <div style={{ fontSize: '0.9rem', color: 'var(--c-text-sub)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    {readPage + 1} / {totalPages}
+                </div>
+
+                <button
+                    className="btn-primary"
+                    onClick={handleNext}
+                    style={{ minWidth: '100px' }}
+                >
+                    {readPage === totalPages - 1 ? 'Finish' : 'Next'} <ChevronRight size={20} style={{ marginLeft: '0.25rem' }} />
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const RiftPhase = ({ chapter, nextPhase }: { chapter: any, nextPhase: () => void }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--c-secondary)' }}>Rift Alert!</h2>
+        <p style={{ marginBottom: '2rem' }}>Tap the corrupted text to cleanse it!</p>
+        <div className="card" onClick={nextPhase}
+            style={{ padding: '2rem', backgroundColor: '#1F2937', color: 'white', cursor: 'pointer', position: 'relative', overflow: 'hidden', width: '200px', height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+            <p style={{ filter: 'blur(4px)', userSelect: 'none' }}>
+                {chapter.riftPoints[0].text}
+            </p>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: '3rem' }}>👻</span>
+            </div>
+        </div>
+        <p style={{ marginTop: '1rem', fontSize: '0.85rem', animation: 'bounce 1s infinite' }}>Tap to Cleanse!</p>
+    </div>
+);
+
+const BossPhase = ({ chapter, nextPhase }: { chapter: any, nextPhase: () => void }) => {
+    const boss = chapter.boss;
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
+            <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--c-error)' }}>Boss Battle!</h2>
+            <p style={{ marginBottom: '2rem' }}>{boss.name}</p>
+
+            <div style={{ width: '120px', height: '120px', borderRadius: '50%', backgroundColor: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '4rem', marginBottom: '2rem', border: '4px solid #FCA5A5' }}>
+                {boss.avatarEmoji}
+            </div>
+
+            <div className="card" style={{ width: '100%', padding: '1.5rem', marginBottom: '1rem', maxWidth: '400px' }}>
+                <p style={{ fontWeight: 700, marginBottom: '1rem' }}>Quiz: "{boss.quizQuestion}"</p>
+                <div style={{ display: 'grid', gap: '0.5rem' }}>
+                    {boss.quizChoices.map((c: string) => (
+                        <button
+                            key={c}
+                            className="btn-secondary"
+                            style={{ width: '100%' }}
+                            onClick={() => {
+                                if (c === boss.correctAnswer) nextPhase();
+                                else alert("Wrong! " + boss.avatarEmoji + " attacks!");
+                            }}
+                        >
+                            {c}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const RewardPhase = ({ chapter, nextPhase }: { chapter: any, nextPhase: () => void }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
+        <motion.div
+            initial={{ scale: 0 }} animate={{ scale: 1 }}
+            style={{ fontSize: '4rem', marginBottom: '1rem' }}
+        >
+            🎉
+        </motion.div>
+        <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--c-primary)' }}>Run Complete!</h2>
+        <div style={{ display: 'flex', gap: '2rem', marginBottom: '2rem' }}>
+            <div className="flex-center" style={{ flexDirection: 'column' }}>
+                <span style={{ fontSize: '1.5rem' }}>💧</span>
+                <span>+{chapter.rewards.ink} Ink</span>
+            </div>
+            <div className="flex-center" style={{ flexDirection: 'column' }}>
+                <span style={{ fontSize: '1.5rem' }}>✨</span>
+                <span>+{chapter.rewards.runes} Rune</span>
+            </div>
+        </div>
+        <button className="btn-primary" style={{ width: '100%', maxWidth: '200px' }} onClick={nextPhase}>Back to Libraria</button>
+    </div>
+);
+
+// --- Main Page Component ---
+
 const RunSessionPage: React.FC = () => {
     const navigate = useNavigate();
     const { addInk, addRunes, addGems, selectedBookId, selectedChapterId } = useGameStore();
@@ -71,304 +376,6 @@ const RunSessionPage: React.FC = () => {
         if (window.confirm("Quit run? Progress will be lost.")) navigate('/home');
     };
 
-    // --- Phase Components ---
-
-    const WordPhase = () => {
-        const [shake, setShake] = useState<string | null>(null);
-        const q = chapter.wordSprint;
-
-        const handleWordChoice = (choice: string) => {
-            if (choice === q.correctChoice) {
-                nextPhase();
-            } else {
-                setShake(choice);
-                setTimeout(() => setShake(null), 500);
-            }
-        };
-
-        return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', textAlign: 'center', justifyContent: 'center' }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--c-primary)' }}>Word Sprint!</h2>
-                <div className="card" style={{ maxWidth: '400px', width: '100%', padding: '2rem', marginBottom: '2rem' }}>
-                    <p style={{ color: 'var(--c-text-sub)', marginBottom: '0.5rem' }}>Identify this word:</p>
-                    <h3 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1.5rem' }}>{q.word}</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        {q.choices.map((choice) => (
-                            <motion.button
-                                key={choice}
-                                className="btn-secondary"
-                                onClick={() => handleWordChoice(choice)}
-                                animate={shake === choice ? { x: [-10, 10, -10, 10, 0], backgroundColor: '#FEE2E2', borderColor: '#F87171' } : {}}
-                                transition={{ duration: 0.4 }}
-                            >
-                                {choice}
-                            </motion.button>
-                        ))}
-                    </div>
-                </div>
-                <p style={{ color: 'var(--c-text-sub)', fontSize: '0.85rem' }}>Phase 1/5</p>
-            </div>
-        );
-    };
-
-    // Helper to split text into sentences (Robust)
-    const splitIntoSentences = (text: string): string[] => {
-        if (!text) return [];
-        const tempDiv = document.createElement("div");
-        tempDiv.innerHTML = text;
-        const plainText = tempDiv.textContent || tempDiv.innerText || "";
-        const matches = plainText.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g);
-        return matches || [plainText];
-    };
-
-    const ReadPhase = () => {
-        const paragraphs = chapter.content;
-        const totalPages = paragraphs.length;
-        const currentRawText = paragraphs[readPage] || "";
-
-        // Clean HTML tags if any to split sentences cleanly
-        // Use useMemo and robust splitting. Cleaning is done inside splitIntoSentences.
-        const sentences = React.useMemo(() => splitIntoSentences(currentRawText), [currentRawText]);
-
-        const scrollRef = useRef<HTMLDivElement>(null);
-        const [fadingIndex, setFadingIndex] = useState(0);
-
-        // Reset scroll on page change
-        useEffect(() => {
-            if (scrollRef.current) {
-                scrollRef.current.scrollTop = 0;
-            }
-        }, [readPage]);
-
-        // Auto-fading logic
-        useEffect(() => {
-            setFadingIndex(0); // Reset on page change
-            console.log(`Page ${readPage} Loaded. Sentences: ${sentences.length}`);
-
-            // Initial 5s delay before starting to fade
-            const startDelay = setTimeout(() => {
-                console.log("Starting fade sequence...");
-
-                // Interval to fade sentences one by one
-                const interval = setInterval(() => {
-                    setFadingIndex(prev => {
-                        const next = prev + 1;
-                        console.log("Fading index:", next);
-
-                        if (next >= sentences.length) {
-                            clearInterval(interval);
-                            // Small delay before turning page
-                            setTimeout(() => {
-                                if (readPage < totalPages - 1) {
-                                    setReadPage(p => p + 1);
-                                } else {
-                                    nextPhase();
-                                }
-                            }, 2500);
-                            return next;
-                        }
-                        return next;
-                    });
-                }, 3500); // 3.5s per sentence
-
-                return () => clearInterval(interval);
-
-            }, 5000); // 5s initial wait
-
-            return () => clearTimeout(startDelay);
-        }, [readPage, sentences, totalPages]);
-
-        const handlePrev = () => {
-            if (readPage > 0) setReadPage(p => p - 1);
-        };
-
-        const handleNext = () => {
-            if (readPage < totalPages - 1) {
-                setReadPage(p => p + 1);
-            } else {
-                nextPhase(); // Finish Reading
-            }
-        };
-
-        return (
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
-                {gazePos && (
-                    <div
-                        style={{
-                            position: 'fixed', left: gazePos.x, top: gazePos.y,
-                            width: 20, height: 20, borderRadius: '50%',
-                            backgroundColor: 'rgba(139, 92, 246, 0.4)',
-                            pointerEvents: 'none', zIndex: 9999,
-                            transform: 'translate(-50%, -50%)',
-                            boxShadow: '0 0 15px rgba(139, 92, 246, 0.6)'
-                        }}
-                    />
-                )}
-
-                <div style={{ position: 'absolute', top: 0, right: 0, padding: '0.5rem', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '50%' }}>
-                    <Eye size={20} color="var(--c-primary)" />
-                </div>
-
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '0.5rem', overflow: 'hidden' }}>
-                    <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--c-text-sub)', textAlign: 'center', flexShrink: 0 }}>
-                        {book.title} <span style={{ fontWeight: 400 }}>- {readPage + 1}/{totalPages}</span>
-                    </h2>
-
-                    {/* Book Page Container */}
-                    <div ref={scrollRef} className="card reading-card" style={{
-                        flex: 1,
-                        width: '100%',
-                        maxWidth: '800px', // Wider on PC
-                        margin: '0 auto',
-                        padding: '1rem', // Less padding
-                        backgroundColor: '#fffdf5',
-                        borderRadius: 'var(--radius-md)',
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-                        lineHeight: 1.7,
-                        fontFamily: 'serif',
-                        fontSize: '1.0rem', // Smaller Text
-                        color: '#374151',
-                        overflowY: 'auto',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        scrollbarWidth: 'none',
-                        msOverflowStyle: 'none'
-                    }}>
-                        <style>
-                            {`
-                                .reading-card::-webkit-scrollbar { display: none; } 
-                                .fading-sentence { transition: opacity 0.5s ease; }
-                            `}
-                        </style>
-
-                        <div key={readPage} className="reading-content">
-                            {sentences.map((sentence, index) => (
-                                <span
-                                    key={index}
-                                    className="fading-sentence"
-                                    style={{
-                                        opacity: index < fadingIndex ? 0 : 1,
-                                        display: 'inline',
-                                        marginRight: '0.3em'
-                                    }}
-                                >
-                                    {sentence}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Pagination Controls - Fixed Bottom */}
-                <div style={{
-                    padding: '1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '1rem',
-                    backgroundColor: 'var(--c-bg)',
-                    borderTop: '1px solid rgba(0,0,0,0.05)',
-                    flexShrink: 0
-                }}>
-                    <button
-                        className="btn-secondary"
-                        onClick={handlePrev}
-                        disabled={readPage === 0}
-                        style={{ opacity: readPage === 0 ? 0.5 : 1, minWidth: '100px' }}
-                    >
-                        <ChevronLeft size={20} style={{ marginRight: '0.25rem' }} /> Prev
-                    </button>
-
-                    <div style={{ fontSize: '0.9rem', color: 'var(--c-text-sub)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        {readPage + 1} / {totalPages}
-                    </div>
-
-                    <button
-                        className="btn-primary"
-                        onClick={handleNext}
-                        style={{ minWidth: '100px' }}
-                    >
-                        {readPage === totalPages - 1 ? 'Finish' : 'Next'} <ChevronRight size={20} style={{ marginLeft: '0.25rem' }} />
-                    </button>
-                </div>
-            </div>
-        );
-    };
-
-    const RiftPhase = () => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--c-secondary)' }}>Rift Alert!</h2>
-            <p style={{ marginBottom: '2rem' }}>Tap the corrupted text to cleanse it!</p>
-            <div className="card" onClick={nextPhase}
-                style={{ padding: '2rem', backgroundColor: '#1F2937', color: 'white', cursor: 'pointer', position: 'relative', overflow: 'hidden', width: '200px', height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-                <p style={{ filter: 'blur(4px)', userSelect: 'none' }}>
-                    {chapter.riftPoints[0].text}
-                </p>
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '3rem' }}>👻</span>
-                </div>
-            </div>
-            <p style={{ marginTop: '1rem', fontSize: '0.85rem', animation: 'bounce 1s infinite' }}>Tap to Cleanse!</p>
-        </div>
-    );
-
-    const BossPhase = () => {
-        const boss = chapter.boss;
-        return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
-                <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--c-error)' }}>Boss Battle!</h2>
-                <p style={{ marginBottom: '2rem' }}>{boss.name}</p>
-
-                <div style={{ width: '120px', height: '120px', borderRadius: '50%', backgroundColor: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '4rem', marginBottom: '2rem', border: '4px solid #FCA5A5' }}>
-                    {boss.avatarEmoji}
-                </div>
-
-                <div className="card" style={{ width: '100%', padding: '1.5rem', marginBottom: '1rem', maxWidth: '400px' }}>
-                    <p style={{ fontWeight: 700, marginBottom: '1rem' }}>Quiz: "{boss.quizQuestion}"</p>
-                    <div style={{ display: 'grid', gap: '0.5rem' }}>
-                        {boss.quizChoices.map(c => (
-                            <button
-                                key={c}
-                                className="btn-secondary"
-                                style={{ width: '100%' }}
-                                onClick={() => {
-                                    if (c === boss.correctAnswer) nextPhase();
-                                    else alert("Wrong! " + boss.avatarEmoji + " attacks!");
-                                }}
-                            >
-                                {c}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    const RewardPhase = () => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
-            <motion.div
-                initial={{ scale: 0 }} animate={{ scale: 1 }}
-                style={{ fontSize: '4rem', marginBottom: '1rem' }}
-            >
-                🎉
-            </motion.div>
-            <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--c-primary)' }}>Run Complete!</h2>
-            <div style={{ display: 'flex', gap: '2rem', marginBottom: '2rem' }}>
-                <div className="flex-center" style={{ flexDirection: 'column' }}>
-                    <span style={{ fontSize: '1.5rem' }}>💧</span>
-                    <span>+{chapter.rewards.ink} Ink</span>
-                </div>
-                <div className="flex-center" style={{ flexDirection: 'column' }}>
-                    <span style={{ fontSize: '1.5rem' }}>✨</span>
-                    <span>+{chapter.rewards.runes} Rune</span>
-                </div>
-            </div>
-            <button className="btn-primary" style={{ width: '100%', maxWidth: '200px' }} onClick={nextPhase}>Back to Libraria</button>
-        </div>
-    );
-
     return (
         <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--c-bg)' }}>
             {/* HUD */}
@@ -394,17 +401,17 @@ const RunSessionPage: React.FC = () => {
             <main style={{ flex: 1, padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
                 <AnimatePresence mode="wait">
                     <motion.div
-                        key={phase + selectedChapterId} // Force re-render on chapter change
+                        key={phase + selectedChapterId}
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }}
                         style={{ height: '100%' }}
                     >
-                        {phase === 'WORD' && <WordPhase />}
-                        {phase === 'READ' && <ReadPhase />}
-                        {phase === 'RIFT' && <RiftPhase />}
-                        {phase === 'BOSS' && <BossPhase />}
-                        {phase === 'REWARD' && <RewardPhase />}
+                        {phase === 'WORD' && <WordPhase chapter={chapter} nextPhase={nextPhase} />}
+                        {phase === 'READ' && <ReadPhase chapter={chapter} readPage={readPage} setReadPage={setReadPage} nextPhase={nextPhase} gazePos={gazePos} />}
+                        {phase === 'RIFT' && <RiftPhase chapter={chapter} nextPhase={nextPhase} />}
+                        {phase === 'BOSS' && <BossPhase chapter={chapter} nextPhase={nextPhase} />}
+                        {phase === 'REWARD' && <RewardPhase chapter={chapter} nextPhase={nextPhase} />}
                     </motion.div>
                 </AnimatePresence>
             </main>
