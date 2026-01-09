@@ -40,7 +40,7 @@ export const initSeeso = async (): Promise<boolean> => {
         seesoInstance = new EasySeeso();
 
         // Check if key is set
-        if (!SEESO_LICENSE_KEY || SEESO_LICENSE_KEY === 'YOUR_LICENSE_KEY_HERE') {
+        if (!SEESO_LICENSE_KEY || SEESO_LICENSE_KEY.length < 10) {
             console.warn("SeeSo License Key not set!");
             setTimeout(() => {
                 console.log("Mock SeeSo Init (No Key)");
@@ -63,7 +63,7 @@ export const startCalibration = (
     onProgress: (progress: number) => void,
     onFinish: () => void
 ) => {
-    if (!seesoInstance || !SEESO_LICENSE_KEY || SEESO_LICENSE_KEY === 'YOUR_LICENSE_KEY_HERE') {
+    if (!seesoInstance || !SEESO_LICENSE_KEY || SEESO_LICENSE_KEY.length < 10) {
         // Mock Fallback
         mockCalibration(onNextPoint, onProgress, onFinish);
         return;
