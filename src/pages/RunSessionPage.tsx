@@ -164,7 +164,7 @@ const RunSessionPage: React.FC = () => {
                                 } else {
                                     nextPhase();
                                 }
-                            }, 1000);
+                            }, 2500);
                             return next;
                         }
                         return next;
