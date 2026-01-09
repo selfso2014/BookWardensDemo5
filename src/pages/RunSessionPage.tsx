@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, X, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, X, Eye } from 'lucide-react';
 import { useGameStore } from '../lib/store';
 import { setGazeCallback } from '../lib/seesoHandler';
 import { MOCK_BOOKS } from '../data/mockBooks';
@@ -122,17 +122,7 @@ const ReadPhase = ({ chapter, readPage, setReadPage, nextPhase, gazePos }: {
         return () => clearTimeout(startDelay);
     }, [readPage, sentences, totalPages, nextPhase, setReadPage]); // Fixed dependencies
 
-    const handlePrev = () => {
-        if (readPage > 0) setReadPage(p => p - 1);
-    };
-
-    const handleNext = () => {
-        if (readPage < totalPages - 1) {
-            setReadPage(p => p + 1);
-        } else {
-            nextPhase(); // Finish Reading
-        }
-    };
+    // Removed handlePrev and handleNext as manual control is disabled.
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
@@ -201,39 +191,6 @@ const ReadPhase = ({ chapter, readPage, setReadPage, nextPhase, gazePos }: {
                         ))}
                     </div>
                 </div>
-            </div>
-
-            {/* Pagination Controls - Fixed Bottom */}
-            <div style={{
-                padding: '1rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '1rem',
-                backgroundColor: 'var(--c-bg)',
-                borderTop: '1px solid rgba(0,0,0,0.05)',
-                flexShrink: 0
-            }}>
-                <button
-                    className="btn-secondary"
-                    onClick={handlePrev}
-                    disabled={readPage === 0}
-                    style={{ opacity: readPage === 0 ? 0.5 : 1, minWidth: '100px' }}
-                >
-                    <ChevronLeft size={20} style={{ marginRight: '0.25rem' }} /> Prev
-                </button>
-
-                <div style={{ fontSize: '0.9rem', color: 'var(--c-text-sub)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                    {readPage + 1} / {totalPages}
-                </div>
-
-                <button
-                    className="btn-primary"
-                    onClick={handleNext}
-                    style={{ minWidth: '100px' }}
-                >
-                    {readPage === totalPages - 1 ? 'Finish' : 'Next'} <ChevronRight size={20} style={{ marginLeft: '0.25rem' }} />
-                </button>
             </div>
         </div>
     );
