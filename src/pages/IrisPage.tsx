@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import IrisCharacter from '../components/IrisCharacter';
-import { MessageCircle, Heart, Zap } from 'lucide-react';
+import { MessageCircle, Heart, Zap, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const IrisPage: React.FC = () => {
+    const navigate = useNavigate();
     const [irisState, setIrisState] = useState<'IDLE' | 'HAPPY' | 'WORRIED' | 'LISTENING'>('IDLE');
     const [message, setMessage] = useState("I'm always watching over you, Warden!");
 
@@ -53,15 +55,26 @@ const IrisPage: React.FC = () => {
                 </div>
 
                 {/* Status / Interactions */}
-                <div style={{ padding: '0 1.5rem 1.5rem 1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'center', padding: '1rem' }}>
-                        <Heart color="var(--c-secondary)" fill="var(--c-secondary)" />
-                        <span style={{ fontWeight: 600 }}>Mood: Happy</span>
+                <div style={{ padding: '0 1.5rem 1.5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'center', padding: '1rem' }}>
+                            <Heart color="var(--c-secondary)" fill="var(--c-secondary)" />
+                            <span style={{ fontWeight: 600 }}>Mood: Happy</span>
+                        </div>
+                        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'center', padding: '1rem' }}>
+                            <Zap color="var(--c-accent)" fill="var(--c-accent)" />
+                            <span style={{ fontWeight: 600 }}>Energy: 100%</span>
+                        </div>
                     </div>
-                    <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'center', padding: '1rem' }}>
-                        <Zap color="var(--c-accent)" fill="var(--c-accent)" />
-                        <span style={{ fontWeight: 600 }}>Energy: 100%</span>
-                    </div>
+
+                    <button
+                        className="btn-secondary"
+                        style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
+                        onClick={() => navigate('/onboarding/calibration?returnTo=/iris')}
+                    >
+                        <RefreshCw size={20} />
+                        Recalibrate Eye Tracker
+                    </button>
                 </div>
             </div>
         </DashboardLayout>

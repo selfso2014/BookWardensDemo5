@@ -144,8 +144,14 @@ const CalibrationSimulator: React.FC = () => {
                 // Finish
                 setCalPoint(null);
                 setTimeout(() => {
-                    completeOnboarding();
-                    navigate('/home');
+                    if (!useGameStore.getState().isOnboarded) {
+                        completeOnboarding();
+                    }
+
+                    // Check logic for return
+                    const searchParams = new URLSearchParams(window.location.search);
+                    const returnTo = searchParams.get('returnTo');
+                    navigate(returnTo || '/home');
                 }, 1000);
             }
         );
