@@ -111,9 +111,14 @@ const RunSessionPage: React.FC = () => {
         );
     };
 
-    // Helper to split text into sentences
+    // Helper to split text into sentences (Robust)
     const splitIntoSentences = (text: string): string[] => {
-        return text.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g) || [text];
+        if (!text) return [];
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = text;
+        const plainText = tempDiv.textContent || tempDiv.innerText || "";
+        const matches = plainText.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g);
+        return matches || [plainText];
     };
 
     const ReadPhase = () => {
@@ -122,8 +127,8 @@ const RunSessionPage: React.FC = () => {
         const currentRawText = paragraphs[readPage] || "";
 
         // Clean HTML tags if any to split sentences cleanly
-        const cleanText = currentRawText.replace(/<[^>]*>/g, '');
-        const sentences = splitIntoSentences(cleanText);
+        // Use useMemo and robust splitting. Cleaning is done inside splitIntoSentences.
+        const sentences = React.useMemo(() => splitIntoSentences(currentRawText), [currentRawText]);
 
         const scrollRef = useRef<HTMLDivElement>(null);
         const [fadingIndex, setFadingIndex] = useState(0);
@@ -138,14 +143,18 @@ const RunSessionPage: React.FC = () => {
         // Auto-fading logic
         useEffect(() => {
             setFadingIndex(0); // Reset on page change
+            console.log(`Page ${readPage} Loaded. Sentences: ${sentences.length}`);
 
             // Initial 5s delay before starting to fade
             const startDelay = setTimeout(() => {
+                console.log("Starting fade sequence...");
 
                 // Interval to fade sentences one by one
                 const interval = setInterval(() => {
                     setFadingIndex(prev => {
                         const next = prev + 1;
+                        console.log("Fading index:", next);
+
                         if (next >= sentences.length) {
                             clearInterval(interval);
                             // Small delay before turning page
@@ -167,7 +176,7 @@ const RunSessionPage: React.FC = () => {
             }, 5000); // 5s initial wait
 
             return () => clearTimeout(startDelay);
-        }, [readPage, sentences.length, totalPages]);
+        }, [readPage, sentences, totalPages]);
 
         const handlePrev = () => {
             if (readPage > 0) setReadPage(p => p - 1);
