@@ -3,7 +3,7 @@ import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../lib/store';
 import type { UserRole } from '../lib/store';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, CheckCircle, ArrowRight } from 'lucide-react';
+import { Camera, Check, ChevronRight } from 'lucide-react';
 import '../styles/Onboarding.css';
 
 import { initSeeso, startCalibration } from '../lib/seesoHandler';
