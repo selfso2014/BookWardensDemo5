@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Eye, X } from 'lucide-react';
+import { Clock, X, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useGameStore } from '../lib/store';
 import { setGazeCallback } from '../lib/seesoHandler';
 import { MOCK_BOOKS } from '../data/mockBooks';
@@ -20,6 +21,7 @@ const RunSessionPage: React.FC = () => {
     const [phase, setPhase] = useState<RunPhase>('WORD');
     const [timer, setTimer] = useState(600); // 10 mins in seconds
     const [gazePos, setGazePos] = useState<{ x: number, y: number } | null>(null);
+    const [readPage, setReadPage] = useState(0); // Pagination state
 
     // Initial check
     if (!book || !chapter) {
@@ -47,7 +49,7 @@ const RunSessionPage: React.FC = () => {
     const formatTime = (s: number) => {
         const m = Math.floor(s / 60);
         const sec = s % 60;
-        return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+        return `${m}:${sec < 10 ? '0' : ''}${sec} `;
     };
 
     // Phase Transitions
@@ -109,40 +111,97 @@ const RunSessionPage: React.FC = () => {
         );
     };
 
-    const ReadPhase = () => (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
-            {gazePos && (
-                <div
-                    style={{
-                        position: 'fixed', left: gazePos.x, top: gazePos.y,
-                        width: 20, height: 20, borderRadius: '50%',
-                        backgroundColor: 'rgba(139, 92, 246, 0.5)',
-                        pointerEvents: 'none', zIndex: 9999,
-                        transform: 'translate(-50%, -50%)',
-                        boxShadow: '0 0 10px rgba(139, 92, 246, 0.8)'
-                    }}
-                />
-            )}
+    const ReadPhase = () => {
+        const paragraphs = chapter.content;
+        const totalPages = paragraphs.length;
+        const currentText = paragraphs[readPage] || "";
 
-            <div style={{ position: 'absolute', top: 0, right: 0, padding: '0.5rem', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '50%' }}>
-                <Eye size={20} color="var(--c-primary)" />
-            </div>
+        const handlePrev = () => {
+            if (readPage > 0) setReadPage(p => p - 1);
+        };
 
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>
-                {book.title} - {chapter.title}
-            </h2>
+        const handleNext = () => {
+            if (readPage < totalPages - 1) {
+                setReadPage(p => p + 1);
+            } else {
+                nextPhase(); // Finish Reading
+            }
+        };
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', background: 'white', borderRadius: 'var(--radius-md)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', lineHeight: 2, fontFamily: 'serif', fontSize: '1.1rem' }}>
-                {chapter.content.map((paragraph, idx) => (
-                    <p key={idx} dangerouslySetInnerHTML={{ __html: paragraph }} style={{ marginBottom: '1rem' }} />
-                ))}
-                <div style={{ height: '150px' }} />
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+                {gazePos && (
+                    <div
+                        style={{
+                            position: 'fixed', left: gazePos.x, top: gazePos.y,
+                            width: 20, height: 20, borderRadius: '50%',
+                            backgroundColor: 'rgba(139, 92, 246, 0.4)',
+                            pointerEvents: 'none', zIndex: 9999,
+                            transform: 'translate(-50%, -50%)',
+                            boxShadow: '0 0 15px rgba(139, 92, 246, 0.6)'
+                        }}
+                    />
+                )}
+
+                <div style={{ position: 'absolute', top: 0, right: 0, padding: '0.5rem', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '50%' }}>
+                    <Eye size={20} color="var(--c-primary)" />
+                </div>
+
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--c-text-sub)' }}>
+                        {book.title} <span style={{ fontWeight: 400 }}>- {readPage + 1}/{totalPages}</span>
+                    </h2>
+
+                    {/* Book Page Container */}
+                    <div className="card" style={{
+                        flex: 1,
+                        padding: '2rem',
+                        backgroundColor: '#fffdf5', // Warm paper color
+                        borderRadius: 'var(--radius-lg)',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+                        lineHeight: 1.8,
+                        fontFamily: 'serif',
+                        fontSize: '1.35rem', // Larger Text as requested
+                        color: '#374151',
+                        overflowY: 'auto'
+                    }}>
+                        <motion.div
+                            key={readPage}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <p dangerouslySetInnerHTML={{ __html: currentText }} />
+                        </motion.div>
+                    </div>
+                </div>
+
+                {/* Pagination Controls */}
+                <div style={{ padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                    <button
+                        className="btn-secondary"
+                        onClick={handlePrev}
+                        disabled={readPage === 0}
+                        style={{ opacity: readPage === 0 ? 0.5 : 1, width: '120px' }}
+                    >
+                        <ChevronLeft size={20} style={{ marginRight: '0.5rem' }} /> Prev
+                    </button>
+
+                    <div style={{ fontSize: '0.9rem', color: 'var(--c-text-sub)', fontWeight: 600 }}>
+                        Page {readPage + 1} of {totalPages}
+                    </div>
+
+                    <button
+                        className="btn-primary"
+                        onClick={handleNext}
+                        style={{ width: '120px' }}
+                    >
+                        {readPage === totalPages - 1 ? 'Finish' : 'Next'} <ChevronRight size={20} style={{ marginLeft: '0.5rem' }} />
+                    </button>
+                </div>
             </div>
-            <div className="flex-center" style={{ marginTop: '1rem' }}>
-                <button className="btn-primary" onClick={nextPhase}>Finish Reading</button>
-            </div>
-        </div>
-    );
+        );
+    };
 
     const RiftPhase = () => (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
