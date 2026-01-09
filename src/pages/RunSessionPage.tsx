@@ -60,22 +60,44 @@ const RunSessionPage: React.FC = () => {
 
     // --- Phase Components ---
 
-    const WordPhase = () => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', textAlign: 'center', justifyContent: 'center' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--c-primary)' }}>Word Sprint!</h2>
-            <div className="card" style={{ maxWidth: '400px', width: '100%', padding: '2rem', marginBottom: '2rem' }}>
-                <p style={{ color: 'var(--c-text-sub)', marginBottom: '0.5rem' }}>Identify this word:</p>
-                <h3 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1.5rem' }}>Ephemeral</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <button className="btn-secondary" onClick={nextPhase}>Short-lived</button>
-                    <button className="btn-secondary">Eternal</button>
-                    <button className="btn-secondary">Heavy</button>
-                    <button className="btn-secondary">Bright</button>
+    const WordPhase = () => {
+        const [shake, setShake] = useState<string | null>(null);
+
+        const handleWordChoice = (choice: string) => {
+            if (choice === 'Short-lived') {
+                // Correct
+                nextPhase();
+            } else {
+                // Incorrect
+                setShake(choice);
+                setTimeout(() => setShake(null), 500);
+            }
+        };
+
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', textAlign: 'center', justifyContent: 'center' }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--c-primary)' }}>Word Sprint!</h2>
+                <div className="card" style={{ maxWidth: '400px', width: '100%', padding: '2rem', marginBottom: '2rem' }}>
+                    <p style={{ color: 'var(--c-text-sub)', marginBottom: '0.5rem' }}>Identify this word:</p>
+                    <h3 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1.5rem' }}>Ephemeral</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        {['Short-lived', 'Eternal', 'Heavy', 'Bright'].map((word) => (
+                            <motion.button
+                                key={word}
+                                className="btn-secondary"
+                                onClick={() => handleWordChoice(word)}
+                                animate={shake === word ? { x: [-10, 10, -10, 10, 0], backgroundColor: '#FEE2E2', borderColor: '#F87171' } : {}}
+                                transition={{ duration: 0.4 }}
+                            >
+                                {word}
+                            </motion.button>
+                        ))}
+                    </div>
                 </div>
+                <p style={{ color: 'var(--c-text-sub)', fontSize: '0.85rem' }}>Step 1/5</p>
             </div>
-            <p style={{ color: 'var(--c-text-sub)', fontSize: '0.85rem' }}>Step 1/5</p>
-        </div>
-    );
+        );
+    };
 
     const ReadPhase = () => (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
