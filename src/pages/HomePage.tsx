@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { useGameStore } from '../lib/store';
+import IrisCharacter from '../components/IrisCharacter';
 import { Play, Award, Calendar } from 'lucide-react';
 import '../styles/Home.css';
 
@@ -56,12 +57,7 @@ const HomePage: React.FC = () => {
 
                 {/* Iris Message */}
                 <div className="iris-mood-card">
-                    <div style={{
-                        width: 48, height: 48, borderRadius: '50%', backgroundColor: 'var(--c-primary-light)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem'
-                    }}>
-                        🧚‍♀️
-                    </div>
+                    <IrisCharacter width={60} height={60} state="HAPPY" />
                     <div>
                         <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>Iris says:</p>
                         <p style={{ color: 'var(--c-text-sub)', fontSize: '0.85rem' }}>
