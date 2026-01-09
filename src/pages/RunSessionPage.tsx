@@ -155,8 +155,8 @@ const RunSessionPage: React.FC = () => {
                     <Eye size={20} color="var(--c-primary)" />
                 </div>
 
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem', overflow: 'hidden' }}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--c-text-sub)', textAlign: 'center', flexShrink: 0 }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '0.5rem', overflow: 'hidden' }}>
+                    <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--c-text-sub)', textAlign: 'center', flexShrink: 0 }}>
                         {book.title} <span style={{ fontWeight: 400 }}>- {readPage + 1}/{totalPages}</span>
                     </h2>
 
@@ -164,22 +164,23 @@ const RunSessionPage: React.FC = () => {
                     <div ref={scrollRef} className="card reading-card" style={{
                         flex: 1,
                         width: '100%',
-                        maxWidth: '700px', // Prevent too wide text on PC
-                        margin: '0 auto', // Center on PC
-                        padding: '1.5rem',
+                        maxWidth: '800px', // Wider on PC
+                        margin: '0 auto',
+                        padding: '1rem', // Less padding
                         backgroundColor: '#fffdf5',
-                        borderRadius: 'var(--radius-lg)',
+                        borderRadius: 'var(--radius-md)',
                         boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-                        lineHeight: 1.8,
+                        lineHeight: 1.7,
                         fontFamily: 'serif',
-                        fontSize: '1.15rem', // Smaller Text (was 1.25rem)
+                        fontSize: '1.0rem', // Smaller Text
                         color: '#374151',
-                        overflowY: 'auto', // Enable Scroll again
+                        overflowY: 'auto',
                         display: 'flex',
                         flexDirection: 'column',
-                        scrollbarWidth: 'none', // Firefox hide scrollbar
-                        msOverflowStyle: 'none'  // IE/Edge hide scrollbar
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none'
                     }}>
+
                         <style>
                             {`
                                 .reading-card::-webkit-scrollbar {
