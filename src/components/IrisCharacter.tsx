@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRive, useStateMachineInput, Layout, Fit, Alignment } from '@rive-app/react-canvas';
 import { motion } from 'framer-motion';
+import irisFallbackSrc from '../assets/iris_fallback.jpg'; // Import asset
 
 interface IrisCharacterProps {
     width?: number | string;
@@ -33,13 +34,12 @@ const IrisCharacter: React.FC<IrisCharacterProps> = ({ width = 150, height = 150
     useEffect(() => {
         if (rive && stateInput) {
             // Map string state to number for Rive State Machine
-            // 0: Idle, 1: Happy, 2: Worried, 3: Listening
             const map = { 'IDLE': 0, 'HAPPY': 1, 'WORRIED': 2, 'LISTENING': 3 };
             stateInput.value = map[state] || 0;
         }
     }, [state, rive, stateInput]);
 
-    // Fallback Timer: If Rive doesn't load in 1.5s, show Image Fallback
+    // Fallback Timer
     useEffect(() => {
         const timer = setTimeout(() => {
             if (!riveLoaded) {
@@ -49,7 +49,7 @@ const IrisCharacter: React.FC<IrisCharacterProps> = ({ width = 150, height = 150
         return () => clearTimeout(timer);
     }, [riveLoaded]);
 
-    // Fallback View (CSS Animation with Image)
+    // Fallback View
     if (useFallback) {
         return (
             <motion.div
@@ -65,7 +65,7 @@ const IrisCharacter: React.FC<IrisCharacterProps> = ({ width = 150, height = 150
                 <div style={{ position: 'absolute', inset: 10, background: 'radial-gradient(circle, rgba(139,92,246,0.4) 0%, transparent 70%)', borderRadius: '50%' }} />
 
                 <img
-                    src="/iris_fallback.jpg"
+                    src={irisFallbackSrc}
                     alt="Iris"
                     style={{
                         width: '100%', height: '100%', objectFit: 'contain',
