@@ -63,8 +63,8 @@ export const useGameStore = create<GameState>()(
             incrementStreak: () => set((state) => ({ streak: state.streak + 1 })),
             updateEyeTier: (tier) => set({ eyeTier: tier }),
 
-            selectedBookId: 'book_01', // Default
-            selectedChapterId: 'ch_01', // Default
+            selectedBookId: 'alice_wonderland', // Default
+            selectedChapterId: 'alice_ch1', // Default
             setSelectedContent: (bookId, chapterId) => set({ selectedBookId: bookId, selectedChapterId: chapterId }),
 
             lastRunDate: null,
