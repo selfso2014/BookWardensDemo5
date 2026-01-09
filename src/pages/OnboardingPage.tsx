@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../lib/store';
 import type { UserRole } from '../lib/store';
@@ -109,11 +109,11 @@ const PermissionsCheck: React.FC = () => {
             ) : (
                 <div className="flex-center flex-col" style={{ gap: '1rem' }}>
                     <div className="flex-center text-success" style={{ gap: '0.5rem', color: 'var(--c-success)' }}>
-                        <CheckCircle size={24} />
+                        <Check size={24} />
                         <span style={{ fontWeight: 600 }}>Camera Connected!</span>
                     </div>
                     <button className="btn-primary" onClick={handleNext} style={{ width: '100%' }}>
-                        Start Calibration <ArrowRight size={18} style={{ marginLeft: 8, display: 'inline' }} />
+                        Start Calibration <ChevronRight size={18} style={{ marginLeft: 8, display: 'inline' }} />
                     </button>
                 </div>
             )}
@@ -129,8 +129,20 @@ const CalibrationSimulator: React.FC = () => {
     const [isCalibrating, setIsCalibrating] = useState(false);
     const [calPoint, setCalPoint] = useState<{ x: number, y: number } | null>(null);
     const [progress, setProgress] = useState(0);
+    const [isReady, setIsReady] = useState(false);
+
+    // Ensure SeeSo is initialized when entering this screen
+    useEffect(() => {
+        const prepareSeeso = async () => {
+            const success = await initSeeso();
+            if (success) setIsReady(true);
+            else alert("Failed to initialize Eye Tracker. Please refresh and try again.");
+        };
+        prepareSeeso();
+    }, []);
 
     const startCal = () => {
+        if (!isReady) return;
         setIsCalibrating(true);
         startCalibration(
             (_idx, x, y) => {
@@ -167,10 +179,10 @@ const CalibrationSimulator: React.FC = () => {
                 <div className="card text-center p-8 max-w-md mx-auto bg-white">
                     <h2 className="onboarding-title">Ritual of Sight</h2>
                     <p className="onboarding-desc">
-                        Follow the magical dot with your eyes.<br />
+                        {isReady ? "Follow the magical dot with your eyes." : "Awakening the Eye Tracker..."}<br />
                         Keep your head still!
                     </p>
-                    <button className="btn-primary" onClick={startCal}>
+                    <button className="btn-primary" onClick={startCal} disabled={!isReady}>
                         Begin Ritual
                     </button>
                 </div>
