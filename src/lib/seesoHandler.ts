@@ -21,7 +21,10 @@ export const initSeeso = async (): Promise<boolean> => {
             seesoInstance?.startTracking(
                 (gazeInfo: any) => {
                     if (gazeCallback) {
-                        gazeCallback({ x: gazeInfo.x, y: gazeInfo.y });
+                        // Simple Weighted Smoothing
+                        // You could replace this with a OneEuroFilter or Kalman Filter for better results
+                        const smoothed = smoothGaze(gazeInfo.x, gazeInfo.y);
+                        gazeCallback(smoothed);
                     }
                 },
                 () => { /* checking callback */ }
@@ -146,4 +149,26 @@ const mockCalibration = (
     };
 
     next();
+};
+
+// --- Gaze Smoothing ---
+let lastX = 0;
+let lastY = 0;
+const ALPHA = 0.4; // Smoothing factor (0.1 = very smooth/slow, 0.9 = responsive/jittery)
+
+const smoothGaze = (rawX: number, rawY: number): GazeData => {
+    // Initial case
+    if (lastX === 0 && lastY === 0) {
+        lastX = rawX;
+        lastY = rawY;
+        return { x: rawX, y: rawY };
+    }
+
+    const newX = lastX * (1 - ALPHA) + rawX * ALPHA;
+    const newY = lastY * (1 - ALPHA) + rawY * ALPHA;
+
+    lastX = newX;
+    lastY = newY;
+
+    return { x: newX, y: newY };
 };
