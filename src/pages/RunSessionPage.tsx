@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Eye, X } from 'lucide-react';
 import { useGameStore } from '../lib/store';
+import { setGazeCallback } from '../lib/seesoHandler';
 import '../styles/Layout.css';
 
 type RunPhase = 'WORD' | 'READ' | 'RIFT' | 'BOSS' | 'REWARD';
@@ -12,6 +13,7 @@ const RunSessionPage: React.FC = () => {
     const { addInk, addRunes, addGems } = useGameStore();
     const [phase, setPhase] = useState<RunPhase>('WORD');
     const [timer, setTimer] = useState(600); // 10 mins in seconds
+    const [gazePos, setGazePos] = useState<{ x: number, y: number } | null>(null);
 
     // Timer
     useEffect(() => {
@@ -19,6 +21,16 @@ const RunSessionPage: React.FC = () => {
             setTimer(t => (t > 0 ? t - 1 : 0));
         }, 1000);
         return () => clearInterval(interval);
+    }, []);
+
+    // Gaze Listener
+    useEffect(() => {
+        setGazeCallback((data) => {
+            setGazePos({ x: data.x, y: data.y });
+        });
+        return () => {
+            setGazeCallback(() => { }); // cleanup
+        };
     }, []);
 
     const formatTime = (s: number) => {
@@ -67,6 +79,25 @@ const RunSessionPage: React.FC = () => {
 
     const ReadPhase = () => (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+            {/* Gaze Dot Feedback (Only visible in Read Phase) */}
+            {gazePos && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        left: gazePos.x,
+                        top: gazePos.y,
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(139, 92, 246, 0.5)', // Transparent Purple
+                        pointerEvents: 'none',
+                        zIndex: 9999,
+                        transform: 'translate(-50%, -50%)',
+                        boxShadow: '0 0 10px rgba(139, 92, 246, 0.8)'
+                    }}
+                />
+            )}
+
             <div style={{ position: 'absolute', top: 0, right: 0, padding: '0.5rem', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '50%' }}>
                 <Eye size={20} color="var(--c-primary)" />
             </div>
@@ -76,6 +107,11 @@ const RunSessionPage: React.FC = () => {
                     The library was quiet, save for the gentle rustling of pages.
                     <span style={{ backgroundColor: '#E9D5FF', padding: '0 4px', borderRadius: '4px' }}>Iris floated silently</span> near the ceiling,
                     her wings shimmering with a soft, iridescent light. It was a day unlike any other in Libraria...
+                </p>
+                <p>
+                    As the clock struck noon, a strange ripple distorted the air. Books began to tremble on their shelves.
+                    One by one, letters peeled off the pages, swirling into a chaotic vortex.
+                    "The Rift!" Iris cried out, her small voice trembling with urgency.
                 </p>
                 <div style={{ height: '150px' }} /> {/* Spacer */}
             </div>

@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../lib/store';
 import type { UserRole } from '../lib/store';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, CheckCircle, ArrowRight, Eye } from 'lucide-react';
+import { Camera, CheckCircle, ArrowRight } from 'lucide-react';
 import '../styles/Onboarding.css';
+
+import { initSeeso, startCalibration } from '../lib/seesoHandler';
 
 // --- Sub-Components ---
 
@@ -57,13 +59,21 @@ const RoleSelection: React.FC = () => {
 
 const PermissionsCheck: React.FC = () => {
     const navigate = useNavigate();
-    const [granted, setGranted] = useState(false);
+    const [status, setStatus] = useState<'IDLE' | 'REQUESTING' | 'GRANTED' | 'FAILED'>('IDLE');
 
-    const requestScale = () => {
-        // Mock permission grant
-        setTimeout(() => {
-            setGranted(true);
-        }, 800);
+    const requestPermission = async () => {
+        setStatus('REQUESTING');
+        try {
+            const success = await initSeeso();
+            if (success) {
+                setStatus('GRANTED');
+            } else {
+                setStatus('FAILED');
+            }
+        } catch (e) {
+            console.error(e);
+            setStatus('FAILED');
+        }
     };
 
     const handleNext = () => {
@@ -84,12 +94,17 @@ const PermissionsCheck: React.FC = () => {
             <h2 className="onboarding-title">Let Iris see your eyes</h2>
             <p className="onboarding-desc">
                 We use your camera to track where you are reading.
-                Images are processed locally and never sent to a server.
+                Images are processed locally. (License Key needed for Real Mode)
             </p>
 
-            {!granted ? (
-                <button className="btn-primary" onClick={requestScale} style={{ width: '100%' }}>
-                    Allow Camera Access
+            {status !== 'GRANTED' ? (
+                <button
+                    className="btn-primary"
+                    onClick={requestPermission}
+                    style={{ width: '100%' }}
+                    disabled={status === 'REQUESTING'}
+                >
+                    {status === 'REQUESTING' ? 'Initializing...' : 'Allow Camera Access'}
                 </button>
             ) : (
                 <div className="flex-center flex-col" style={{ gap: '1rem' }}>
@@ -102,6 +117,7 @@ const PermissionsCheck: React.FC = () => {
                     </button>
                 </div>
             )}
+            {status === 'FAILED' && <p style={{ color: 'red', marginTop: '1rem' }}>Init Failed. Check Console.</p>}
         </motion.div>
     );
 };
@@ -109,79 +125,70 @@ const PermissionsCheck: React.FC = () => {
 const CalibrationSimulator: React.FC = () => {
     const navigate = useNavigate();
     const completeOnboarding = useGameStore((state) => state.completeOnboarding);
-    const [step, setStep] = useState(0); // 0..5 (5 points)
-    const [isCalibrating, setIsCalibrating] = useState(false);
 
-    // Simulation of calibration points
-    useEffect(() => {
-        if (isCalibrating) {
-            if (step < 5) {
-                const timer = setTimeout(() => {
-                    setStep(prev => prev + 1);
-                }, 1500); // 1.5s per point
-                return () => clearTimeout(timer);
-            } else {
-                // Done
+    const [isCalibrating, setIsCalibrating] = useState(false);
+    const [calPoint, setCalPoint] = useState<{ x: number, y: number } | null>(null);
+    const [progress, setProgress] = useState(0);
+
+    const startCal = () => {
+        setIsCalibrating(true);
+        startCalibration(
+            (_idx, x, y) => {
+                setCalPoint({ x, y });
+                setProgress(0);
+            },
+            (prog) => {
+                setProgress(prog);
+            },
+            () => {
+                // Finish
+                setCalPoint(null);
                 setTimeout(() => {
                     completeOnboarding();
                     navigate('/home');
                 }, 1000);
             }
-        }
-    }, [isCalibrating, step, completeOnboarding, navigate]);
-
-    const startCalibration = () => {
-        setIsCalibrating(true);
+        );
     };
 
     return (
         <motion.div
             initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
             className="onboarding-card"
-            style={{ maxWidth: '600px', height: '400px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+            style={{ maxWidth: '100%', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'transparent', boxShadow: 'none' }}
         >
             {!isCalibrating ? (
-                <>
+                <div className="card text-center p-8 max-w-md mx-auto bg-white">
                     <h2 className="onboarding-title">Ritual of Sight</h2>
                     <p className="onboarding-desc">
                         Follow the magical dot with your eyes.<br />
                         Keep your head still!
                     </p>
-                    <button className="btn-primary" onClick={startCalibration}>
+                    <button className="btn-primary" onClick={startCal}>
                         Begin Ritual
                     </button>
-                </>
+                </div>
             ) : (
-                <div className="flex-center flex-col h-full relative">
-                    {step < 5 ? (
+                <div className="relative w-full h-full">
+                    {calPoint && (
                         <motion.div
-                            key={step}
                             initial={{ scale: 0 }} animate={{ scale: 1 }}
-                            className="cal-dot-active"
                             style={{
-                                width: '30px', height: '30px', borderRadius: '50%',
+                                width: '40px', height: '40px', borderRadius: '50%',
                                 background: 'var(--c-accent)',
                                 boxShadow: '0 0 20px var(--c-accent)',
                                 position: 'absolute',
-                                // Mock positions
-                                top: step === 0 ? '10%' : step === 1 ? '10%' : step === 2 ? '80%' : step === 3 ? '80%' : '50%',
-                                left: step === 0 ? '10%' : step === 1 ? '90%' : step === 2 ? '10%' : step === 3 ? '90%' : '50%'
+                                top: calPoint.y - 20,
+                                left: calPoint.x - 20,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center'
                             }}
-                        />
-                    ) : (
-                        <motion.div
-                            initial={{ scale: 0.5, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="flex-center flex-col"
                         >
-                            <Eye size={64} color="var(--c-primary)" />
-                            <h2 className="onboarding-title mt-4">Excellent!</h2>
-                            <p>Calibration Complete.</p>
+                            <div style={{ width: 10, height: 10, background: 'black', borderRadius: '50%' }} />
                         </motion.div>
                     )}
-
-                    <div className="absolute bottom-0 w-full">
-                        <p className="text-gray-400 text-sm">Calibrating point {Math.min(step + 1, 5)} / 5</p>
+                    {/* Progress Indicator just for debug/visual */}
+                    <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.5)', color: 'white', padding: '4px 12px', borderRadius: '12px' }}>
+                        Progress: {Math.round(progress * 100)}%
                     </div>
                 </div>
             )}
@@ -195,7 +202,6 @@ const OnboardingPage: React.FC = () => {
     return (
         <div className="onboarding-container">
             <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'center' }}>
-                {/* Simple logo header */}
                 <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--c-primary)', fontSize: '1.5rem' }}>
                     The Book Wardens
                 </h2>
