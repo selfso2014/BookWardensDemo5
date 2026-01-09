@@ -147,56 +147,71 @@ const RunSessionPage: React.FC = () => {
                     <Eye size={20} color="var(--c-primary)" />
                 </div>
 
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem' }}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--c-text-sub)' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem', overflow: 'hidden' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--c-text-sub)', textAlign: 'center', flexShrink: 0 }}>
                         {book.title} <span style={{ fontWeight: 400 }}>- {readPage + 1}/{totalPages}</span>
                     </h2>
 
                     {/* Book Page Container */}
                     <div className="card" style={{
                         flex: 1,
-                        padding: '2rem',
-                        backgroundColor: '#fffdf5', // Warm paper color
+                        width: '100%',
+                        maxWidth: '700px', // Prevent too wide text on PC
+                        margin: '0 auto', // Center on PC
+                        padding: '1.5rem',
+                        backgroundColor: '#fffdf5',
                         borderRadius: 'var(--radius-lg)',
                         boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
                         lineHeight: 1.8,
                         fontFamily: 'serif',
-                        fontSize: '1.35rem', // Larger Text as requested
+                        fontSize: '1.25rem',
                         color: '#374151',
-                        overflowY: 'auto'
+                        overflowY: 'auto',
+                        display: 'flex',
+                        flexDirection: 'column'
                     }}>
                         <motion.div
                             key={readPage}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3 }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.2 }}
+                            style={{ width: '100%' }}
                         >
                             <p dangerouslySetInnerHTML={{ __html: currentText }} />
                         </motion.div>
                     </div>
                 </div>
 
-                {/* Pagination Controls */}
-                <div style={{ padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                {/* Pagination Controls - Fixed Bottom */}
+                <div style={{
+                    padding: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '1rem',
+                    backgroundColor: 'var(--c-bg)',
+                    borderTop: '1px solid rgba(0,0,0,0.05)',
+                    flexShrink: 0
+                }}>
                     <button
                         className="btn-secondary"
                         onClick={handlePrev}
                         disabled={readPage === 0}
-                        style={{ opacity: readPage === 0 ? 0.5 : 1, width: '120px' }}
+                        style={{ opacity: readPage === 0 ? 0.5 : 1, minWidth: '100px' }}
                     >
-                        <ChevronLeft size={20} style={{ marginRight: '0.5rem' }} /> Prev
+                        <ChevronLeft size={20} style={{ marginRight: '0.25rem' }} /> Prev
                     </button>
 
-                    <div style={{ fontSize: '0.9rem', color: 'var(--c-text-sub)', fontWeight: 600 }}>
-                        Page {readPage + 1} of {totalPages}
+                    <div style={{ fontSize: '0.9rem', color: 'var(--c-text-sub)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        {readPage + 1} / {totalPages}
                     </div>
 
                     <button
                         className="btn-primary"
                         onClick={handleNext}
-                        style={{ width: '120px' }}
+                        style={{ minWidth: '100px' }}
                     >
-                        {readPage === totalPages - 1 ? 'Finish' : 'Next'} <ChevronRight size={20} style={{ marginLeft: '0.5rem' }} />
+                        {readPage === totalPages - 1 ? 'Finish' : 'Next'} <ChevronRight size={20} style={{ marginLeft: '0.25rem' }} />
                     </button>
                 </div>
             </div>
