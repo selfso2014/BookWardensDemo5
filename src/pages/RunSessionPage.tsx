@@ -111,11 +111,22 @@ const RunSessionPage: React.FC = () => {
         );
     };
 
+    // Helper to split text into sentences
+    const splitIntoSentences = (text: string): string[] => {
+        return text.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g) || [text];
+    };
+
     const ReadPhase = () => {
         const paragraphs = chapter.content;
         const totalPages = paragraphs.length;
-        const currentText = paragraphs[readPage] || "";
+        const currentRawText = paragraphs[readPage] || "";
+
+        // Clean HTML tags if any to split sentences cleanly
+        const cleanText = currentRawText.replace(/<[^>]*>/g, '');
+        const sentences = splitIntoSentences(cleanText);
+
         const scrollRef = useRef<HTMLDivElement>(null);
+        const [fadingIndex, setFadingIndex] = useState(0);
 
         // Reset scroll on page change
         useEffect(() => {
@@ -123,6 +134,40 @@ const RunSessionPage: React.FC = () => {
                 scrollRef.current.scrollTop = 0;
             }
         }, [readPage]);
+
+        // Auto-fading logic
+        useEffect(() => {
+            setFadingIndex(0); // Reset on page change
+
+            // Initial 5s delay before starting to fade
+            const startDelay = setTimeout(() => {
+
+                // Interval to fade sentences one by one
+                const interval = setInterval(() => {
+                    setFadingIndex(prev => {
+                        const next = prev + 1;
+                        if (next >= sentences.length) {
+                            clearInterval(interval);
+                            // Small delay before turning page
+                            setTimeout(() => {
+                                if (readPage < totalPages - 1) {
+                                    setReadPage(p => p + 1);
+                                } else {
+                                    nextPhase();
+                                }
+                            }, 1000);
+                            return next;
+                        }
+                        return next;
+                    });
+                }, 3500); // 3.5s per sentence
+
+                return () => clearInterval(interval);
+
+            }, 5000); // 5s initial wait
+
+            return () => clearTimeout(startDelay);
+        }, [readPage, sentences.length, totalPages]);
 
         const handlePrev = () => {
             if (readPage > 0) setReadPage(p => p - 1);
@@ -180,17 +225,27 @@ const RunSessionPage: React.FC = () => {
                         scrollbarWidth: 'none',
                         msOverflowStyle: 'none'
                     }}>
-
                         <style>
                             {`
-                                .reading-card::-webkit-scrollbar {
-                                    display: none;
-                                }
+                                .reading-card::-webkit-scrollbar { display: none; } 
+                                .fading-sentence { transition: opacity 0.5s ease; }
                             `}
                         </style>
-                        {/* Direct re-render without animation for zero flickering */}
+
                         <div key={readPage} className="reading-content">
-                            <p dangerouslySetInnerHTML={{ __html: currentText }} />
+                            {sentences.map((sentence, index) => (
+                                <span
+                                    key={index}
+                                    className="fading-sentence"
+                                    style={{
+                                        opacity: index < fadingIndex ? 0 : 1,
+                                        display: 'inline',
+                                        marginRight: '0.3em'
+                                    }}
+                                >
+                                    {sentence}
+                                </span>
+                            ))}
                         </div>
                     </div>
                 </div>
